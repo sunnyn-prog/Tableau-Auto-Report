@@ -12,7 +12,7 @@ from google.oauth2.service_account import Credentials
 def main():
     # ----- Configuration -----
     # Tableau Config
-    TOKEN_NAME = 'Sunny-FNP_1'
+    TOKEN_NAME = 'Sunny-FNP_2'
     TOKEN_VALUE = os.environ.get('TABLEAU_TOKEN_SECRET')
     if not TOKEN_VALUE:
         print("Error: TABLEAU_TOKEN_SECRET environment variable not set.")
