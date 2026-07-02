@@ -1,0 +1,4 @@
+tableauserverclient
+gspread
+google-auth
+pytz
