@@ -18,6 +18,9 @@ function App() {
   
   // Default to tomorrow's date
   const [dateFilter, setDateFilter] = useState(getFutureDate(1));
+  const [categoryFilter, setCategoryFilter] = useState('All');
+  const [slotFilter, setSlotFilter] = useState('All');
+  const [statusFilter, setStatusFilter] = useState('All');
 
   useEffect(() => {
     // Listen for Auth changes
@@ -110,11 +113,32 @@ function App() {
 
   // Parse delivery date strings correctly for filtering
   const filteredSuborders = suborders.filter(s => {
-    if (!dateFilter) return true;
-    if (!s.delivery_date) return false;
-    return s.delivery_date.startsWith(dateFilter) || 
-           s.delivery_date === new Date(dateFilter).getDate().toString();
+    if (dateFilter) {
+      if (!s.delivery_date) return false;
+      const matchesDate = s.delivery_date.startsWith(dateFilter) || 
+             s.delivery_date === new Date(dateFilter).getDate().toString();
+      if (!matchesDate) return false;
+    }
+    if (categoryFilter !== 'All' && s.category !== categoryFilter) return false;
+    if (slotFilter !== 'All' && s.delivery_slot !== slotFilter) return false;
+    if (statusFilter === 'Prepared' && !s.is_prepared) return false;
+    if (statusFilter === 'Pending' && s.is_prepared) return false;
+    return true;
   });
+
+  const categories = ['All', ...new Set(suborders.map(s => s.category).filter(Boolean))];
+  const slots = ['All', ...new Set(suborders.map(s => s.delivery_slot).filter(Boolean))];
+  
+  const filterStyle = {
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    color: 'white',
+    border: '1px solid var(--border)',
+    padding: '0.5rem',
+    borderRadius: '0.5rem',
+    outline: 'none',
+    fontFamily: 'inherit',
+    cursor: 'pointer'
+  };
 
   const totalOrders = filteredSuborders.length;
   const preparedCount = filteredSuborders.filter(s => s.is_prepared).length;
@@ -124,29 +148,45 @@ function App() {
     <div className="container">
       <div className="header-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2rem' }}>
         <div>
-          <h1>TBP Preparation Portal</h1>
+          <h1>FNP Daily Orders</h1>
           <p className="subtitle" style={{ marginBottom: '1rem' }}>
             Welcome, {user.displayName} | <button onClick={() => signOut(auth)} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', textDecoration: 'underline' }}>Sign Out</button>
           </p>
           
           {/* Filters */}
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            <label style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Delivery Date:</label>
-            <input 
-              type="date"
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-              style={{
-                backgroundColor: 'rgba(0,0,0,0.3)',
-                color: 'white',
-                border: '1px solid var(--border)',
-                padding: '0.5rem 1rem',
-                borderRadius: '0.5rem',
-                outline: 'none',
-                fontFamily: 'inherit',
-                cursor: 'pointer'
-              }}
-            />
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <label style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Date:</label>
+              <input 
+                type="date"
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                style={filterStyle}
+              />
+            </div>
+            
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <label style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Category:</label>
+              <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} style={filterStyle}>
+                {categories.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <label style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Slot:</label>
+              <select value={slotFilter} onChange={(e) => setSlotFilter(e.target.value)} style={filterStyle}>
+                {slots.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <label style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Status:</label>
+              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={filterStyle}>
+                <option value="All">All</option>
+                <option value="Pending">Pending</option>
+                <option value="Prepared">Prepared</option>
+              </select>
+            </div>
           </div>
         </div>
         
