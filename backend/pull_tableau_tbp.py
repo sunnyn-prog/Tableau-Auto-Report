@@ -56,17 +56,30 @@ def main():
     operations = 0
     total_processed = 0
     
+    # Calculate the days of the month for today, tomorrow, and day after
+    from datetime import datetime, timedelta
+    now = datetime.now()
+    valid_days = [str(now.day), str((now + timedelta(days=1)).day), str((now + timedelta(days=2)).day)]
+    
     for row in reader:
         sub_id = row.get("SUB_ORDER_ID", "").strip()
         if not sub_id or sub_id == "Null":
             continue
             
-        doc_ref = db.collection("suborders").document(sub_id)
+        # Only process orders for today, tomorrow, and day after tomorrow
+        delivery_day = str(row.get("Day of DELIVERY DATE", "")).strip()
+        if delivery_day and delivery_day not in valid_days:
+            continue
+            
+        product_code = row.get("PRODUCT CODE", "").strip()
+        doc_id = f"{sub_id}_{product_code}" if product_code else sub_id
+        doc_ref = db.collection("suborders").document(doc_id)
         
         # Build document data dynamically based on available columns
         data = {
-            "id": sub_id,
-            "product_code": row.get("PRODUCT CODE", ""),
+            "id": doc_id,
+            "suborder_id": sub_id,
+            "product_code": product_code,
             "product_name": row.get("PRODUCT NAME", ""),
             "category": row.get("Final Prod-Category", ""),
             "image_url": row.get("Image URL", ""),

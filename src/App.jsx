@@ -199,7 +199,7 @@ function App() {
                       </label>
                     </td>
                     <td>
-                      <div style={{ fontWeight: '500' }}>{sub.id}</div>
+                      <div style={{ fontWeight: '500' }}>{sub.suborder_id || sub.id}</div>
                     </td>
                     <td>
                        <span className="badge" style={{ backgroundColor: 'rgba(59,130,246,0.2)', color: 'var(--accent)', border: 'none', marginBottom: '4px' }}>
