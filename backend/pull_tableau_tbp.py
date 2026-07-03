@@ -70,7 +70,7 @@ def main():
             "product_name": row.get("PRODUCT NAME", ""),
             "category": row.get("Final Prod-Category", ""),
             "image_url": row.get("Image URL", ""),
-            "qty": int(float(row.get("Metric", "1") or 1)),
+            "qty": int(float(str(row.get("Metric", "1") or "1").replace(',', ''))),
             "last_updated": firestore.SERVER_TIMESTAMP
         }
         
