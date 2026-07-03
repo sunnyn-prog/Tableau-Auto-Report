@@ -18,8 +18,8 @@ function App() {
   
   // Default to tomorrow's date
   const [dateFilter, setDateFilter] = useState(getFutureDate(1));
-  const [categoryFilter, setCategoryFilter] = useState('All');
-  const [slotFilter, setSlotFilter] = useState('All');
+  const [categoryFilter, setCategoryFilter] = useState(['Flowers', 'Combos', 'Not Found', 'Customised']);
+  const [slotFilter, setSlotFilter] = useState([]);
   const [statusFilter, setStatusFilter] = useState('All');
 
   useEffect(() => {
@@ -119,8 +119,8 @@ function App() {
              s.delivery_date === new Date(dateFilter).getDate().toString();
       if (!matchesDate) return false;
     }
-    if (categoryFilter !== 'All' && s.category !== categoryFilter) return false;
-    if (slotFilter !== 'All' && s.delivery_slot !== slotFilter) return false;
+    if (categoryFilter.length > 0 && !categoryFilter.includes(s.category)) return false;
+    if (slotFilter.length > 0 && !slotFilter.includes(s.delivery_slot)) return false;
     if (statusFilter === 'Prepared' && !s.is_prepared) return false;
     if (statusFilter === 'Pending' && s.is_prepared) return false;
     return true;
@@ -167,16 +167,46 @@ function App() {
             
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <label style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Category:</label>
-              <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} style={filterStyle}>
-                {categories.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
+              <details style={{ position: 'relative' }}>
+                <summary style={{...filterStyle, listStyle: 'none', cursor: 'pointer', minWidth: '130px'}}>{categoryFilter.length === 0 ? 'All Categories' : `${categoryFilter.length} Selected`}</summary>
+                <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '4px', backgroundColor: '#1e293b', border: '1px solid var(--border)', padding: '0.75rem', borderRadius: '0.5rem', zIndex: 10, display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '250px', overflowY: 'auto', minWidth: '200px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' }}>
+                  <label style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', cursor: 'pointer', color: 'white', fontSize: '0.9rem' }}>
+                    <input type="checkbox" checked={categoryFilter.length === 0} onChange={() => setCategoryFilter([])} />
+                    All Categories
+                  </label>
+                  {categories.filter(c => c !== 'All').map(c => (
+                    <label key={c} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', cursor: 'pointer', color: 'white', fontSize: '0.9rem' }}>
+                      <input type="checkbox" checked={categoryFilter.includes(c)} onChange={(e) => {
+                        if (e.target.checked) setCategoryFilter([...categoryFilter, c]);
+                        else setCategoryFilter(categoryFilter.filter(x => x !== c));
+                      }} />
+                      {c}
+                    </label>
+                  ))}
+                </div>
+              </details>
             </div>
             
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <label style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Slot:</label>
-              <select value={slotFilter} onChange={(e) => setSlotFilter(e.target.value)} style={filterStyle}>
-                {slots.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
+              <details style={{ position: 'relative' }}>
+                <summary style={{...filterStyle, listStyle: 'none', cursor: 'pointer', minWidth: '100px'}}>{slotFilter.length === 0 ? 'All Slots' : `${slotFilter.length} Selected`}</summary>
+                <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '4px', backgroundColor: '#1e293b', border: '1px solid var(--border)', padding: '0.75rem', borderRadius: '0.5rem', zIndex: 10, display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '250px', overflowY: 'auto', minWidth: '200px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' }}>
+                  <label style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', cursor: 'pointer', color: 'white', fontSize: '0.9rem' }}>
+                    <input type="checkbox" checked={slotFilter.length === 0} onChange={() => setSlotFilter([])} />
+                    All Slots
+                  </label>
+                  {slots.filter(s => s !== 'All').map(s => (
+                    <label key={s} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', cursor: 'pointer', color: 'white', fontSize: '0.9rem' }}>
+                      <input type="checkbox" checked={slotFilter.includes(s)} onChange={(e) => {
+                        if (e.target.checked) setSlotFilter([...slotFilter, s]);
+                        else setSlotFilter(slotFilter.filter(x => x !== s));
+                      }} />
+                      {s}
+                    </label>
+                  ))}
+                </div>
+              </details>
             </div>
             
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>

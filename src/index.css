@@ -176,8 +176,8 @@ input:checked + .slider:before {
 }
 
 .product-img {
-  width: 48px;
-  height: 48px;
+  width: 80px;
+  height: 80px;
   border-radius: 0.5rem;
   object-fit: cover;
   border: 1px solid var(--border);
