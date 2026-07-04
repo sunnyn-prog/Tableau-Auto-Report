@@ -169,6 +169,46 @@ function App() {
   const preparedCount = filteredSuborders.filter(s => s.is_prepared).length;
   const progress = totalOrders === 0 ? 0 : Math.round((preparedCount / totalOrders) * 100);
 
+  const preparedSummary = {};
+  filteredSuborders.forEach(sub => {
+    if (sub.is_prepared) {
+      const name = sub.prepared_by || 'Unknown';
+      preparedSummary[name] = (preparedSummary[name] || 0) + 1;
+    }
+  });
+
+  const downloadCSV = () => {
+    if (sortedSuborders.length === 0) return;
+    
+    const headers = ['Suborder ID', 'Date', 'Slot', 'Product Name', 'Product Code', 'Category', 'Special Instructions', 'Qty', 'Status', 'Prepared By'];
+    
+    const csvRows = sortedSuborders.map(sub => {
+      const dateStr = sub.delivery_date?.length > 2 ? new Date(sub.delivery_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'Day ' + sub.delivery_date;
+      return [
+        `"${sub.suborder_id || sub.id}"`,
+        `"${dateStr}"`,
+        `"${sub.delivery_slot || ''}"`,
+        `"${(sub.product_name || '').replace(/"/g, '""')}"`,
+        `"${sub.product_code || ''}"`,
+        `"${sub.category || ''}"`,
+        `"${(sub.special_instructions || '').replace(/"/g, '""')}"`,
+        sub.qty || 1,
+        `"${sub.is_prepared ? 'Prepared' : 'Pending'}"`,
+        `"${sub.prepared_by || ''}"`
+      ].join(',');
+    });
+    
+    const csvString = [headers.join(','), ...csvRows].join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `FNP_Orders_${dateFilter || 'All'}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="container">
       <div className="header-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2rem' }}>
@@ -200,6 +240,30 @@ function App() {
               </svg>
               Sync Tableau Orders
             </a>
+            <button 
+              onClick={downloadCSV}
+              style={{
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                color: 'var(--success)',
+                padding: '0.5rem 1rem',
+                borderRadius: '0.5rem',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '0.9rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                transition: 'all 0.2s',
+                fontFamily: 'inherit'
+              }}
+              title="Download filtered orders as CSV"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+              </svg>
+              Download CSV
+            </button>
           </div>
           <p className="subtitle" style={{ marginBottom: '1rem', marginTop: '0.5rem' }}>
             Welcome, {user.displayName} | <button onClick={() => signOut(auth)} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', textDecoration: 'underline' }}>Sign Out</button>
@@ -288,6 +352,20 @@ function App() {
         </div>
       </div>
 
+      {user.email === 'sunny.n@fnp.sg' && Object.keys(preparedSummary).length > 0 && (
+        <div className="glass-card" style={{ marginBottom: '1.5rem', padding: '1rem 1.5rem' }}>
+          <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '1.1rem', color: 'var(--text)' }}>Admin Summary: Prepared By</h3>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            {Object.entries(preparedSummary).sort((a, b) => b[1] - a[1]).map(([name, count]) => (
+              <div key={name} style={{ backgroundColor: 'rgba(59, 130, 246, 0.15)', border: '1px solid rgba(59, 130, 246, 0.3)', padding: '0.5rem 1rem', borderRadius: '0.5rem', color: 'white', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <span style={{ fontWeight: '600' }}>{name}</span>
+                <span style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: '0.1rem 0.5rem', borderRadius: '1rem', fontSize: '0.8rem' }}>{count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="glass-card">
         {loading ? (
           <div className="loader-container">
@@ -305,6 +383,7 @@ function App() {
                   </th>
                   <th>Product</th>
                   <th>Category</th>
+                  <th>Special Instructions</th>
                   <th>Qty</th>
                   <th>Status</th>
                 </tr>
@@ -349,6 +428,11 @@ function App() {
                       </div>
                     </td>
                     <td>{sub.category}</td>
+                    <td>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: '200px', whiteSpace: 'normal', wordWrap: 'break-word' }}>
+                        {sub.special_instructions && sub.special_instructions.toLowerCase() !== 'null' ? sub.special_instructions : '-'}
+                      </div>
+                    </td>
                     <td style={{ fontWeight: '600', fontSize: '1.1rem' }}>{sub.qty}</td>
                     <td>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
