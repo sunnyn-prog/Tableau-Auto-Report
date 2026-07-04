@@ -21,6 +21,7 @@ function App() {
   const [categoryFilter, setCategoryFilter] = useState(['Flowers', 'Combos', 'Not Found', 'Customised']);
   const [slotFilter, setSlotFilter] = useState([]);
   const [statusFilter, setStatusFilter] = useState('All');
+  const [sortSlotAsc, setSortSlotAsc] = useState(true);
 
   useEffect(() => {
     // Listen for Auth changes
@@ -41,15 +42,25 @@ function App() {
     // Real-time listener for Firestore suborders
     const q = query(collection(db, 'suborders'));
     const unsubscribeData = onSnapshot(q, (querySnapshot) => {
-      const items = [];
-      querySnapshot.forEach((doc) => {
-        items.push({ id: doc.id, ...doc.data() });
+      const itemsMap = new Map();
+      
+      querySnapshot.forEach((docSnap) => {
+        const data = { id: docSnap.id, ...docSnap.data() };
+        const uniqueKey = `${data.suborder_id}_${data.product_code}`;
+        
+        if (itemsMap.has(uniqueKey)) {
+          const existing = itemsMap.get(uniqueKey);
+          // Prefer the document ID that contains an underscore (the newer format)
+          if (data.id.includes('_') && !existing.id.includes('_')) {
+            itemsMap.set(uniqueKey, data);
+          }
+        } else {
+          itemsMap.set(uniqueKey, data);
+        }
       });
-      // Sort by status, then ID (mock sorting)
-      items.sort((a, b) => {
-        if (a.is_prepared === b.is_prepared) return a.id.localeCompare(b.id);
-        return a.is_prepared ? 1 : -1;
-      });
+      
+      const items = Array.from(itemsMap.values());
+      
       setSuborders(items);
       setLoading(false);
     }, (error) => {
@@ -124,6 +135,20 @@ function App() {
     if (statusFilter === 'Prepared' && !s.is_prepared) return false;
     if (statusFilter === 'Pending' && s.is_prepared) return false;
     return true;
+  });
+
+  const sortedSuborders = [...filteredSuborders].sort((a, b) => {
+    // Always push prepared items to bottom
+    if (a.is_prepared !== b.is_prepared) {
+      return a.is_prepared ? 1 : -1;
+    }
+    // Sort by delivery slot
+    const slotA = a.delivery_slot || '';
+    const slotB = b.delivery_slot || '';
+    if (slotA !== slotB) {
+      return sortSlotAsc ? slotA.localeCompare(slotB) : slotB.localeCompare(slotA);
+    }
+    return (a.suborder_id || a.id).localeCompare(b.suborder_id || b.id);
   });
 
   const categories = ['All', ...new Set(suborders.map(s => s.category).filter(Boolean))];
@@ -248,7 +273,9 @@ function App() {
                 <tr>
                   <th>Prepared</th>
                   <th>Suborder ID</th>
-                  <th>Date & Slot</th>
+                  <th style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }} onClick={() => setSortSlotAsc(!sortSlotAsc)}>
+                    Date & Slot {sortSlotAsc ? '↑' : '↓'}
+                  </th>
                   <th>Product</th>
                   <th>Category</th>
                   <th>Qty</th>
@@ -256,7 +283,7 @@ function App() {
                 </tr>
               </thead>
               <tbody>
-                {filteredSuborders.map(sub => (
+                {sortedSuborders.map(sub => (
                   <tr key={sub.id} className={sub.is_prepared ? 'is-prepared' : ''}>
                     <td style={{ width: '80px', textAlign: 'center' }}>
                       <label className="switch">
