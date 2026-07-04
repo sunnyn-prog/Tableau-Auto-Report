@@ -285,6 +285,10 @@ function App() {
     document.body.removeChild(link);
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <div className="container">
       <div className="header-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2rem' }}>
@@ -340,6 +344,35 @@ function App() {
               </svg>
               Download CSV
             </button>
+            {viewMode === 'summary' && (
+              <button 
+                onClick={handlePrint}
+                style={{
+                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                  color: 'var(--text-main)',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '0.5rem',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  fontSize: '0.9rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  transition: 'all 0.2s',
+                  fontFamily: 'inherit'
+                }}
+                title="Print Summary"
+                className="hide-on-print"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                  <rect x="6" y="14" width="12" height="8"></rect>
+                </svg>
+                Print Summary
+              </button>
+            )}
             <button 
               onClick={() => setViewMode(viewMode === 'orders' ? 'summary' : 'orders')}
               style={{
@@ -491,9 +524,9 @@ function App() {
                   <tr key={prod.code}>
                     <td style={{ width: '100px' }}>
                       {prod.image_url && prod.image_url !== 'NA' ? (
-                        <img src={prod.image_url} alt={prod.name} className="product-img" style={{ width: '60px', height: '60px' }} />
+                        <img src={prod.image_url} alt={prod.name} className="product-img" />
                       ) : (
-                        <div className="product-img" style={{ width: '60px', height: '60px' }}></div>
+                        <div className="product-img"></div>
                       )}
                     </td>
                     <td style={{ fontWeight: '600', fontSize: '1.4rem', color: 'var(--accent)', width: '120px' }}>
