@@ -46,12 +46,18 @@ function App() {
       
       querySnapshot.forEach((docSnap) => {
         const data = { id: docSnap.id, ...docSnap.data() };
-        const uniqueKey = `${data.suborder_id}_${data.product_code}`;
+        const cleanSub = String(data.suborder_id || '').trim().toLowerCase();
+        const cleanProd = String(data.product_code || '').trim().toLowerCase();
+        const uniqueKey = `${cleanSub}_${cleanProd}`;
         
         if (itemsMap.has(uniqueKey)) {
           const existing = itemsMap.get(uniqueKey);
-          // Prefer the document ID that contains an underscore (the newer format)
-          if (data.id.includes('_') && !existing.id.includes('_')) {
+          
+          const newTime = data.last_updated?.seconds || 0;
+          const oldTime = existing.last_updated?.seconds || 0;
+          
+          // Always keep the most recently updated document from Tableau
+          if (newTime > oldTime) {
             itemsMap.set(uniqueKey, data);
           }
         } else {
