@@ -58,8 +58,9 @@ def main():
     
     # Calculate the days of the month for today, tomorrow, and day after
     from datetime import datetime, timedelta
+    import time
     now = datetime.now()
-    valid_days = [str(now.day), str((now + timedelta(days=1)).day), str((now + timedelta(days=2)).day)]
+    valid_days = [now.day, (now + timedelta(days=1)).day, (now + timedelta(days=2)).day]
     
     for row in reader:
         sub_id = row.get("SUB_ORDER_ID", "").strip()
@@ -67,8 +68,16 @@ def main():
             continue
             
         # Only process orders for today, tomorrow, and day after tomorrow
-        delivery_day = str(row.get("Day of DELIVERY DATE", "")).strip()
-        if delivery_day and delivery_day not in valid_days:
+        delivery_day_str = str(row.get("Day of DELIVERY DATE", "")).strip()
+        if not delivery_day_str:
+            continue
+            
+        try:
+            delivery_day_int = int(delivery_day_str)
+        except ValueError:
+            continue
+            
+        if delivery_day_int not in valid_days:
             continue
             
         product_code = row.get("PRODUCT CODE", "").strip()
@@ -102,8 +111,9 @@ def main():
         total_processed += 1
         
         # Firestore batch limit is 500
-        if operations == 450:
+        if operations >= 450:
             batch.commit()
+            time.sleep(2) # Prevent rate limits
             batch = db.batch()
             operations = 0
             print(f"Committed {total_processed} records...")
