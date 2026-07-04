@@ -46,8 +46,8 @@ function App() {
       
       querySnapshot.forEach((docSnap) => {
         const data = { id: docSnap.id, ...docSnap.data() };
-        const cleanSub = String(data.suborder_id || '').trim().toLowerCase();
-        const cleanProd = String(data.product_code || '').trim().toLowerCase();
+        const cleanSub = String(data.suborder_id || data.id || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+        const cleanProd = String(data.product_code || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
         const uniqueKey = `${cleanSub}_${cleanProd}`;
         
         if (itemsMap.has(uniqueKey)) {
