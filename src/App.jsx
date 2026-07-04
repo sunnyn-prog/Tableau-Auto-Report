@@ -35,6 +35,7 @@ function App() {
   const [sortSlotAsc, setSortSlotAsc] = useState(true);
   const [columns, setColumns] = useState(defaultColumns);
   const [draggedColumn, setDraggedColumn] = useState(null);
+  const [viewMode, setViewMode] = useState('orders'); // 'orders' or 'summary'
 
   useEffect(() => {
     // Listen for Auth changes
@@ -212,6 +213,23 @@ function App() {
   const categories = ['All', ...new Set(suborders.map(s => s.category).filter(Boolean))];
   const slots = ['All', ...new Set(suborders.map(s => s.delivery_slot).filter(Boolean))];
   
+  const productSummaryList = React.useMemo(() => {
+    const summaryMap = {};
+    filteredSuborders.forEach(sub => {
+      const code = sub.product_code || 'Unknown';
+      if (!summaryMap[code]) {
+        summaryMap[code] = {
+          code,
+          name: sub.product_name,
+          image_url: sub.image_url,
+          totalQty: 0
+        };
+      }
+      summaryMap[code].totalQty += parseInt(sub.qty || 1, 10);
+    });
+    return Object.values(summaryMap).sort((a, b) => b.totalQty - a.totalQty);
+  }, [filteredSuborders]);
+  
   const filterStyle = {
     backgroundColor: 'rgba(0,0,0,0.3)',
     color: 'white',
@@ -321,6 +339,30 @@ function App() {
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
               </svg>
               Download CSV
+            </button>
+            <button 
+              onClick={() => setViewMode(viewMode === 'orders' ? 'summary' : 'orders')}
+              style={{
+                backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                color: 'var(--primary)',
+                padding: '0.5rem 1rem',
+                borderRadius: '0.5rem',
+                border: '1px solid rgba(139, 92, 246, 0.3)',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '0.9rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                transition: 'all 0.2s',
+                fontFamily: 'inherit'
+              }}
+              title="Toggle Product Summary View"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 6h16M4 12h16M4 18h16"/>
+              </svg>
+              {viewMode === 'orders' ? 'PID Summary' : 'Detailed Orders'}
             </button>
           </div>
           <p className="subtitle" style={{ marginBottom: '1rem', marginTop: '0.5rem' }}>
@@ -433,6 +475,47 @@ function App() {
         {loading ? (
           <div className="loader-container">
             <div className="spinner"></div>
+          </div>
+        ) : viewMode === 'summary' ? (
+          <div className="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Product Image</th>
+                  <th>Total Qty</th>
+                  <th>Product Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                {productSummaryList.map(prod => (
+                  <tr key={prod.code}>
+                    <td style={{ width: '100px' }}>
+                      {prod.image_url && prod.image_url !== 'NA' ? (
+                        <img src={prod.image_url} alt={prod.name} className="product-img" style={{ width: '60px', height: '60px' }} />
+                      ) : (
+                        <div className="product-img" style={{ width: '60px', height: '60px' }}></div>
+                      )}
+                    </td>
+                    <td style={{ fontWeight: '600', fontSize: '1.4rem', color: 'var(--accent)', width: '120px' }}>
+                      {prod.totalQty}
+                    </td>
+                    <td>
+                      <div className="product-details" style={{ marginLeft: 0 }}>
+                        <span className="product-name" style={{ fontSize: '1.1rem' }}>{prod.name}</span>
+                        <span className="product-code">{prod.code}</span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {productSummaryList.length === 0 && (
+                  <tr>
+                    <td colSpan="3" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                      No products found for this filter.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         ) : (
           <div className="table-wrapper">
