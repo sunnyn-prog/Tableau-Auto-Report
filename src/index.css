@@ -274,3 +274,44 @@ input:checked + .slider:before {
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
+
+/* Make date picker calendar icon visible on dark background */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
+
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .hide-on-print, .header-actions, .switch, button, a {
+    display: none !important;
+  }
+  .glass-card {
+    box-shadow: none !important;
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  th {
+    background-color: #f1f5f9 !important;
+    color: black !important;
+    border-bottom: 2px solid #ccc !important;
+  }
+  td {
+    color: black !important;
+    border-bottom: 1px solid #ccc !important;
+  }
+  .badge {
+    color: black !important;
+    border: 1px solid #ccc !important;
+    background: transparent !important;
+  }
+  .subtitle {
+    color: #64748b !important;
+  }
+}
