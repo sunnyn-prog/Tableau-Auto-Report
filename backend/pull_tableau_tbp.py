@@ -93,6 +93,7 @@ def main():
             "category": row.get("Final Prod-Category", ""),
             "image_url": row.get("Image URL", ""),
             "qty": int(float(str(row.get("Metric", "1") or "1").replace(',', ''))),
+            "special_instructions": row.get("ATTR_VALUE", "") if row.get("ATTR_VALUE", "") != "Null" else "",
             "last_updated": firestore.SERVER_TIMESTAMP
         }
         
