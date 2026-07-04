@@ -213,7 +213,7 @@ function App() {
   const categories = ['All', ...new Set(suborders.map(s => s.category).filter(Boolean))];
   const slots = ['All', ...new Set(suborders.map(s => s.delivery_slot).filter(Boolean))];
   
-  const productSummaryList = React.useMemo(() => {
+  const productSummaryList = (() => {
     const summaryMap = {};
     filteredSuborders.forEach(sub => {
       const code = sub.product_code || 'Unknown';
@@ -228,7 +228,7 @@ function App() {
       summaryMap[code].totalQty += parseInt(sub.qty || 1, 10);
     });
     return Object.values(summaryMap).sort((a, b) => b.totalQty - a.totalQty);
-  }, [filteredSuborders]);
+  })();
   
   const filterStyle = {
     backgroundColor: 'rgba(0,0,0,0.3)',
