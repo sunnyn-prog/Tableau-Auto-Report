@@ -1,8 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { auth, provider, db } from './firebase';
 import { signInWithPopup, onAuthStateChanged, signOut } from 'firebase/auth';
-import { collection, onSnapshot, doc, updateDoc, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, doc, updateDoc, query, orderBy, setDoc } from 'firebase/firestore';
 import './index.css';
+
+const defaultColumns = [
+  'prepared',
+  'suborder_id',
+  'date_slot',
+  'product',
+  'category',
+  'special_instructions',
+  'qty',
+  'status'
+];
 
 // Helper to get dates for default filters
 const getFutureDate = (daysAhead) => {
@@ -22,6 +33,8 @@ function App() {
   const [slotFilter, setSlotFilter] = useState([]);
   const [statusFilter, setStatusFilter] = useState('All');
   const [sortSlotAsc, setSortSlotAsc] = useState(true);
+  const [columns, setColumns] = useState(defaultColumns);
+  const [draggedColumn, setDraggedColumn] = useState(null);
 
   useEffect(() => {
     // Listen for Auth changes
@@ -77,6 +90,16 @@ function App() {
     return () => unsubscribeData();
   }, [user]);
 
+  useEffect(() => {
+    if (!user) return;
+    const unsub = onSnapshot(doc(db, 'settings', 'tableConfig'), (docSnap) => {
+      if (docSnap.exists() && docSnap.data().columns) {
+        setColumns(docSnap.data().columns);
+      }
+    });
+    return () => unsub();
+  }, [user]);
+
   const handleLogin = async () => {
     try {
       await signInWithPopup(auth, provider);
@@ -96,6 +119,35 @@ function App() {
     } catch (error) {
       console.error("Error updating suborder", error);
     }
+  };
+
+  const saveColumnLayout = async () => {
+    try {
+      await setDoc(doc(db, 'settings', 'tableConfig'), { columns }, { merge: true });
+      alert("Column layout saved and synced to all users!");
+    } catch (e) {
+      console.error(e);
+      alert("Error saving layout: " + e.message);
+    }
+  };
+
+  const handleDragStart = (e, colId) => {
+    setDraggedColumn(colId);
+    e.dataTransfer.effectAllowed = "move";
+  };
+  
+  const handleDragOver = (e, targetColId) => {
+    e.preventDefault();
+    if (!draggedColumn || draggedColumn === targetColId) return;
+    
+    const newCols = [...columns];
+    const draggedIdx = newCols.indexOf(draggedColumn);
+    const targetIdx = newCols.indexOf(targetColId);
+    
+    newCols.splice(draggedIdx, 1);
+    newCols.splice(targetIdx, 0, draggedColumn);
+    
+    setColumns(newCols);
   };
 
   if (!user) {
@@ -358,17 +410,22 @@ function App() {
         </div>
       </div>
 
-      {user.email === 'sunny.n@fnp.sg' && Object.keys(preparedSummary).length > 0 && (
+      {user.email === 'sunny.n@fnp.sg' && (
         <div className="glass-card" style={{ marginBottom: '1.5rem', padding: '1rem 1.5rem' }}>
-          <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '1.1rem', color: 'var(--text)' }}>Admin Summary: Prepared By</h3>
-          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-            {Object.entries(preparedSummary).sort((a, b) => b[1] - a[1]).map(([name, count]) => (
-              <div key={name} style={{ backgroundColor: 'rgba(59, 130, 246, 0.15)', border: '1px solid rgba(59, 130, 246, 0.3)', padding: '0.5rem 1rem', borderRadius: '0.5rem', color: 'white', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <span style={{ fontWeight: '600' }}>{name}</span>
-                <span style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: '0.1rem 0.5rem', borderRadius: '1rem', fontSize: '0.8rem' }}>{count}</span>
-              </div>
-            ))}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: Object.keys(preparedSummary).length > 0 ? '0.75rem' : 0 }}>
+             <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text)' }}>Admin Controls</h3>
+             <button onClick={saveColumnLayout} style={{ backgroundColor: 'var(--primary)', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: '600' }}>Save Column Layout</button>
           </div>
+          {Object.keys(preparedSummary).length > 0 && (
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              {Object.entries(preparedSummary).sort((a, b) => b[1] - a[1]).map(([name, count]) => (
+                <div key={name} style={{ backgroundColor: 'rgba(59, 130, 246, 0.15)', border: '1px solid rgba(59, 130, 246, 0.3)', padding: '0.5rem 1rem', borderRadius: '0.5rem', color: 'white', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <span style={{ fontWeight: '600' }}>{name}</span>
+                  <span style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: '0.1rem 0.5rem', borderRadius: '1rem', fontSize: '0.8rem' }}>{count}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -382,76 +439,108 @@ function App() {
             <table>
               <thead>
                 <tr>
-                  <th>Prepared</th>
-                  <th>Suborder ID</th>
-                  <th style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }} onClick={() => setSortSlotAsc(!sortSlotAsc)}>
-                    Date & Slot {sortSlotAsc ? '↑' : '↓'}
-                  </th>
-                  <th>Product</th>
-                  <th>Category</th>
-                  <th>Special Instructions</th>
-                  <th>Qty</th>
-                  <th>Status</th>
+                  {columns.map(colId => {
+                    const isDraggable = user?.email === 'sunny.n@fnp.sg';
+                    const dragProps = isDraggable ? {
+                      draggable: true,
+                      onDragStart: (e) => handleDragStart(e, colId),
+                      onDragOver: (e) => handleDragOver(e, colId),
+                      style: { cursor: 'grab' }
+                    } : {};
+                    
+                    switch(colId) {
+                      case 'prepared': return <th key={colId} {...dragProps}>Prepared</th>;
+                      case 'suborder_id': return <th key={colId} {...dragProps}>Suborder ID</th>;
+                      case 'date_slot': return (
+                        <th key={colId} {...dragProps} style={{ ...(dragProps.style || {}), cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }} onClick={() => setSortSlotAsc(!sortSlotAsc)}>
+                           Date & Slot {sortSlotAsc ? '↑' : '↓'}
+                        </th>
+                      );
+                      case 'product': return <th key={colId} {...dragProps}>Product</th>;
+                      case 'category': return <th key={colId} {...dragProps}>Category</th>;
+                      case 'special_instructions': return <th key={colId} {...dragProps}>Special Instructions</th>;
+                      case 'qty': return <th key={colId} {...dragProps}>Qty</th>;
+                      case 'status': return <th key={colId} {...dragProps}>Status</th>;
+                      default: return null;
+                    }
+                  })}
                 </tr>
               </thead>
               <tbody>
                 {sortedSuborders.map(sub => (
                   <tr key={sub.id} className={sub.is_prepared ? 'is-prepared' : ''}>
-                    <td style={{ width: '80px', textAlign: 'center' }}>
-                      <label className="switch">
-                        <input 
-                          type="checkbox" 
-                          checked={sub.is_prepared || false} 
-                          onChange={() => togglePrepared(sub.id, sub.is_prepared)}
-                        />
-                        <span className="slider"></span>
-                      </label>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: '500' }}>{sub.suborder_id || sub.id}</div>
-                    </td>
-                    <td>
-                       <span className="badge" style={{ backgroundColor: 'rgba(59,130,246,0.2)', color: 'var(--accent)', border: 'none', marginBottom: '4px' }}>
-                         {sub.delivery_date?.length > 2 ? new Date(sub.delivery_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'Day ' + sub.delivery_date}
-                       </span>
-                       {sub.delivery_slot && (
-                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                           {sub.delivery_slot}
-                         </div>
-                       )}
-                    </td>
-                    <td>
-                      <div className="product-cell">
-                        {sub.image_url && sub.image_url !== 'NA' ? (
-                          <img src={sub.image_url} alt={sub.product_name} className="product-img" />
-                        ) : (
-                          <div className="product-img"></div>
-                        )}
-                        <div className="product-details">
-                          <span className="product-name">{sub.product_name}</span>
-                          <span className="product-code">{sub.product_code}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td>{sub.category}</td>
-                    <td>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: '200px', whiteSpace: 'normal', wordWrap: 'break-word' }}>
-                        {sub.special_instructions && sub.special_instructions.toLowerCase() !== 'null' ? sub.special_instructions : '-'}
-                      </div>
-                    </td>
-                    <td style={{ fontWeight: '600', fontSize: '1.1rem' }}>{sub.qty}</td>
-                    <td>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                        <span className={`badge ${sub.is_prepared ? 'prepared' : ''}`} style={{ width: 'fit-content' }}>
-                          {sub.is_prepared ? 'Ready' : 'Pending'}
-                        </span>
-                        {sub.prepared_by && (
-                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                            by {sub.prepared_by}
-                          </span>
-                        )}
-                      </div>
-                    </td>
+                    {columns.map(colId => {
+                      switch(colId) {
+                        case 'prepared': return (
+                          <td key={colId} style={{ width: '80px', textAlign: 'center' }}>
+                            <label className="switch">
+                              <input 
+                                type="checkbox" 
+                                checked={sub.is_prepared || false} 
+                                onChange={() => togglePrepared(sub.id, sub.is_prepared)}
+                              />
+                              <span className="slider"></span>
+                            </label>
+                          </td>
+                        );
+                        case 'suborder_id': return (
+                          <td key={colId}>
+                            <div style={{ fontWeight: '500' }}>{sub.suborder_id || sub.id}</div>
+                          </td>
+                        );
+                        case 'date_slot': return (
+                          <td key={colId}>
+                             <span className="badge" style={{ backgroundColor: 'rgba(59,130,246,0.2)', color: 'var(--accent)', border: 'none', marginBottom: '4px' }}>
+                               {sub.delivery_date?.length > 2 ? new Date(sub.delivery_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'Day ' + sub.delivery_date}
+                             </span>
+                             {sub.delivery_slot && (
+                               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                                 {sub.delivery_slot}
+                               </div>
+                             )}
+                          </td>
+                        );
+                        case 'product': return (
+                          <td key={colId}>
+                            <div className="product-cell">
+                              {sub.image_url && sub.image_url !== 'NA' ? (
+                                <img src={sub.image_url} alt={sub.product_name} className="product-img" />
+                              ) : (
+                                <div className="product-img"></div>
+                              )}
+                              <div className="product-details">
+                                <span className="product-name">{sub.product_name}</span>
+                                <span className="product-code">{sub.product_code}</span>
+                              </div>
+                            </div>
+                          </td>
+                        );
+                        case 'category': return <td key={colId}>{sub.category}</td>;
+                        case 'special_instructions': return (
+                          <td key={colId}>
+                            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: '200px', whiteSpace: 'normal', wordWrap: 'break-word' }}>
+                              {sub.special_instructions && sub.special_instructions.toLowerCase() !== 'null' ? sub.special_instructions : '-'}
+                            </div>
+                          </td>
+                        );
+                        case 'qty': return <td key={colId} style={{ fontWeight: '600', fontSize: '1.1rem' }}>{sub.qty}</td>;
+                        case 'status': return (
+                          <td key={colId}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                              <span className={`badge ${sub.is_prepared ? 'prepared' : ''}`} style={{ width: 'fit-content' }}>
+                                {sub.is_prepared ? 'Ready' : 'Pending'}
+                              </span>
+                              {sub.prepared_by && (
+                                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                                  by {sub.prepared_by}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                        );
+                        default: return null;
+                      }
+                    })}
                   </tr>
                 ))}
                 {filteredSuborders.length === 0 && (
