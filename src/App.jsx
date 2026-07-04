@@ -173,8 +173,35 @@ function App() {
     <div className="container">
       <div className="header-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2rem' }}>
         <div>
-          <h1>FNP Daily Orders</h1>
-          <p className="subtitle" style={{ marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <h1 style={{ margin: 0 }}>FNP Daily Orders</h1>
+            <a 
+              href="https://github.com/sunnyn-prog/Tableau-Auto-Report/actions/workflows/tbp_sync.yml" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                color: 'var(--accent)',
+                padding: '0.5rem 1rem',
+                borderRadius: '0.5rem',
+                textDecoration: 'none',
+                fontWeight: '600',
+                fontSize: '0.9rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                border: '1px solid rgba(59, 130, 246, 0.3)',
+                transition: 'all 0.2s'
+              }}
+              title="Click to run the Sync workflow on GitHub"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21.5 2v6h-6M2.5 22v-6h6M21.34 15.57a10 10 0 1 1-.59-9.21l-5.67 5.67M2.66 8.43a10 10 0 1 1 .59 9.21l5.67-5.67"/>
+              </svg>
+              Sync Tableau Orders
+            </a>
+          </div>
+          <p className="subtitle" style={{ marginBottom: '1rem', marginTop: '0.5rem' }}>
             Welcome, {user.displayName} | <button onClick={() => signOut(auth)} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', textDecoration: 'underline' }}>Sign Out</button>
           </p>
           
