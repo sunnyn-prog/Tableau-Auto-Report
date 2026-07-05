@@ -488,7 +488,7 @@ function App() {
         </div>
       </div>
 
-      {user.email === 'sunny.n@fnp.sg' && (
+      {['sunny.n@fnp.sg', 'belle.t@fnp.sg', 'sawan.k@fnp.sg'].includes(user.email) && (
         <div className="glass-card" style={{ marginBottom: '1.5rem', padding: '1rem 1.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: Object.keys(preparedSummary).length > 0 ? '0.75rem' : 0 }}>
              <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text)' }}>Admin Controls</h3>
@@ -559,7 +559,7 @@ function App() {
               <thead>
                 <tr>
                   {columns.map(colId => {
-                    const isDraggable = user?.email === 'sunny.n@fnp.sg';
+                    const isDraggable = ['sunny.n@fnp.sg', 'belle.t@fnp.sg', 'sawan.k@fnp.sg'].includes(user?.email);
                     const dragProps = isDraggable ? {
                       draggable: true,
                       onDragStart: (e) => handleDragStart(e, colId),
