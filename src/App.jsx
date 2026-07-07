@@ -32,7 +32,7 @@ function App() {
   
   // Default to tomorrow's date
   const [dateFilter, setDateFilter] = useState(getFutureDate(1));
-  const [categoryFilter, setCategoryFilter] = useState(['Flowers', 'Combos', 'Not Found', 'Customised']);
+  const [categoryFilter, setCategoryFilter] = useState(['Flowers', 'Combos', 'Not Found', 'Customised', 'Flower Fruit Hamper', 'Flower Snack Hamper']);
   const [slotFilter, setSlotFilter] = useState([]);
   const [statusFilter, setStatusFilter] = useState('All');
   const [sortSlotAsc, setSortSlotAsc] = useState(true);
